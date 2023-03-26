@@ -1,0 +1,22 @@
+.main {
+  background-color: white;
+
+  button:global(.active) {
+    background-color: green;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+  th,
+  td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #cccccc;
+    font-weight: normal;
+
+    &:global(.active) {
+      font-weight: bold;
+    }
+  }
+}
