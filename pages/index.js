@@ -1,8 +1,9 @@
 import Head from "next/head";
 import { Inter } from "next/font/google";
+import Fuse from "fuse.js";
 import styles from "@/styles/Home.module.scss";
 import { build } from "search-params";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import { sortBy } from "lodash";
 
@@ -48,16 +49,12 @@ const columns = [
 
 export default function Home() {
   const [results, setResults] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentType, setCurrentType] = useState("Pairs");
-  const hasResults = !isLoading && results && results.length > 0;
-
-  const [sortedResults, setSortedResults] = useState([]);
+  const [search, setSearch] = useState("");
   const [sort, setSort] = useState("Date:");
-  useEffect(() => {
-    const sorted = sortBy(results, (result) => getPoint(sort, result, false));
-    setSortedResults(sorted);
-  }, [results, sort]);
+  const hasResults = !isLoading && results && results.length > 0;
 
   useEffect(() => {
     setIsLoading(true);
@@ -90,11 +87,34 @@ export default function Home() {
       return returnData;
     };
 
-    getResults().then((results) => {
-      setResults(results);
+    getResults().then((res) => {
+      setResults(res);
       setIsLoading(false);
     });
   }, [currentType]);
+
+  const fuse = useMemo(
+    () =>
+      new Fuse(results, {
+        threshold: 0.0,
+        keys: ["dataPoints.value"],
+        findAllMatches: true,
+        ignoreLocation: true,
+      }),
+    [results]
+  );
+
+  useEffect(() => {
+    const searchResult = search
+      ? fuse.search(search)?.map(({ item }) => item) ?? results
+      : results;
+
+    const sorted = sortBy(searchResult, (result) =>
+      getPoint(sort, result, false)
+    );
+
+    setSearchResults(sorted);
+  }, [fuse, search, results, sort]);
 
   return (
     <>
@@ -116,7 +136,18 @@ export default function Home() {
             </button>
           ))}
         </nav>
-        <h1>Results: {sortedResults.length}</h1>
+        <br />
+        <form>
+          <label>Search</label>
+          <br />
+          <input
+            type="search"
+            onInput={(e) => setSearch(e.target.value)}
+            value={search}
+          />
+        </form>
+        <br />
+        <h1>Results: {searchResults.length}</h1>
         {isLoading && "Loading..."}
         {hasResults && (
           <table>
@@ -134,7 +165,7 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {sortedResults.map((result, resultIndex) => (
+              {searchResults.map((result, resultIndex) => (
                 <tr key={result.name + result.content + resultIndex}>
                   {columns.map((col) => (
                     <td key={col}>{getPoint(col, result)}</td>
