@@ -1,6 +1,4 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-// import fs from "fs";
-// import path from "path";
 import { build } from "search-params";
 
 // function paramsToObject(entries) {
@@ -36,36 +34,39 @@ const options = {
   complexFilterFormat: "true",
 };
 
-const fetchData = async (query, offset) => {
+const fetchData = async (query) => {
   const params = build({
     ...options,
-    offset: String(offset),
+    offset: query.offset,
     filters: query.filters,
   });
 
   const fetchUrl = [baseUrl, params].join("?");
-  console.log(fetchUrl);
-
   const results = await fetch(fetchUrl).then((res) => res.json());
-  console.log(results);
 
-  // const dataPath = results.activeFilterOptions
-  //   .map(
-  //     ({ name, values }) => `${name}-${values.map(({ key }) => key).join(":")}`
-  //   )
-  //   .join("/");
-  // const saveDir = path.join(__dirname, "../../../../", "data", dataPath);
-  // const saveFile = `data-${offset}.json`;
-  // const saveFilePath = path.join(saveDir, saveFile);
-  // if (!fs.existsSync(saveFilePath) && results.suggests?._?.length > 0) {
-  //   await fs.promises.mkdir(saveDir, {
-  //     recursive: true,
-  //   });
-  //   await fs.promises.writeFile(
-  //     path.join(saveDir, saveFile),
-  //     JSON.stringify(results),
-  //     "utf8"
-  //   );
+  // if (process.env.NODE_ENV === "development") {
+  //   const fs = require("fs");
+  //   const path = require("path");
+
+  //   const dataPath = results.activeFilterOptions
+  //     .map(
+  //       ({ name, values }) =>
+  //         `${name}-${values.map(({ key }) => key).join(":")}`
+  //     )
+  //     .join("/");
+  //   const saveDir = path.join(__dirname, "../../../../", "data", dataPath);
+  //   const saveFile = `data-${offset}.json`;
+  //   const saveFilePath = path.join(saveDir, saveFile);
+  //   if (!fs.existsSync(saveFilePath) && results.suggests?._?.length > 0) {
+  //     await fs.promises.mkdir(saveDir, {
+  //       recursive: true,
+  //     });
+  //     await fs.promises.writeFile(
+  //       path.join(saveDir, saveFile),
+  //       JSON.stringify(results),
+  //       "utf8"
+  //     );
+  //   }
   // }
 
   return results;
@@ -74,23 +75,12 @@ const fetchData = async (query, offset) => {
 export default async function handler(req, res) {
   try {
     const query = req.query;
+    const data = await fetchData(query);
 
-    let offset = 48;
-    let data = await fetchData(query, offset);
-
-    const returnData = [...data.suggests._];
-    while (data && data.totalResults && data.totalResults > offset) {
-      offset = offset + 24;
-      if (offset > data.totalResults) {
-        offset = data.totalResults;
-      }
-      data = await fetchData(query, offset);
-      if (data.suggests?._?.length > 0) {
-        returnData.push(...data.suggests._);
-      }
-    }
-
-    res.status(200).json(returnData);
+    res.status(200).json({
+      results: data?.suggests?._ ?? [],
+      totalResults: data.totalResults,
+    });
   } catch (e) {
     res.status(500).json(e.message);
   }

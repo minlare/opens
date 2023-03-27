@@ -1,6 +1,4 @@
 import Head from "next/head";
-import Image from "next/image";
-import useSWR from "swr";
 import { Inter } from "next/font/google";
 import styles from "@/styles/Home.module.scss";
 import { build } from "search-params";
@@ -22,8 +20,8 @@ const maleEngland = [
 
 const types = ["Individual", "Pairs", "Team"];
 
-const fetcher = (opts) => {
-  const params = build({ filters: JSON.stringify(opts) });
+const fetcher = (offset, opts) => {
+  const params = build({ offset, filters: JSON.stringify(opts) });
   return fetch(["/api/search", params].join("?")).then((r) => r.json());
 };
 
@@ -49,18 +47,9 @@ const columns = [
 ];
 
 export default function Home() {
+  const [results, setResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentType, setCurrentType] = useState("Pairs");
-  const { data: results, isLoading } = useSWR(
-    [
-      {
-        key: "fid#5",
-        name: "type",
-        values: [{ name: currentType, key: currentType }],
-      },
-      ...maleEngland,
-    ],
-    fetcher
-  );
   const hasResults = !isLoading && results && results.length > 0;
 
   const [sortedResults, setSortedResults] = useState([]);
@@ -69,6 +58,43 @@ export default function Home() {
     const sorted = sortBy(results, (result) => getPoint(sort, result, false));
     setSortedResults(sorted);
   }, [results, sort]);
+
+  useEffect(() => {
+    setIsLoading(true);
+
+    const getResults = async () => {
+      const fetchOptions = [
+        {
+          key: "fid#5",
+          name: "type",
+          values: [{ name: currentType, key: currentType }],
+        },
+        ...maleEngland,
+      ];
+
+      let offset = 48;
+      let data = await fetcher(offset, fetchOptions);
+
+      const returnData = [...data.results];
+      while (data && data.totalResults && data.totalResults > offset) {
+        offset = offset + 24;
+        if (offset > data.totalResults) {
+          offset = data.totalResults;
+        }
+        data = await fetcher(offset, fetchOptions);
+        if (data.results.length > 0) {
+          returnData.push(...data.results);
+        }
+      }
+
+      return returnData;
+    };
+
+    getResults().then((results) => {
+      setResults(results);
+      setIsLoading(false);
+    });
+  }, [currentType]);
 
   return (
     <>
