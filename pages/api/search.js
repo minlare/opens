@@ -43,9 +43,11 @@ const fetchData = async (query, offset) => {
     filters: query.filters,
   });
 
-  const results = await fetch([baseUrl, params].join("?")).then((res) =>
-    res.json()
-  );
+  const fetchUrl = [baseUrl, params].join("?");
+  console.log(fetchUrl);
+
+  const results = await fetch(fetchUrl).then((res) => res.json());
+  console.log(results);
 
   // const dataPath = results.activeFilterOptions
   //   .map(
@@ -70,22 +72,26 @@ const fetchData = async (query, offset) => {
 };
 
 export default async function handler(req, res) {
-  const query = req.query;
+  try {
+    const query = req.query;
 
-  let offset = 48;
-  let data = await fetchData(query, offset);
+    let offset = 48;
+    let data = await fetchData(query, offset);
 
-  const returnData = [...data.suggests._];
-  while (data && data.totalResults && data.totalResults > offset) {
-    offset = offset + 24;
-    if (offset > data.totalResults) {
-      offset = data.totalResults;
+    const returnData = [...data.suggests._];
+    while (data && data.totalResults && data.totalResults > offset) {
+      offset = offset + 24;
+      if (offset > data.totalResults) {
+        offset = data.totalResults;
+      }
+      data = await fetchData(query, offset);
+      if (data.suggests?._?.length > 0) {
+        returnData.push(...data.suggests._);
+      }
     }
-    data = await fetchData(query, offset);
-    if (data.suggests?._?.length > 0) {
-      returnData.push(...data.suggests._);
-    }
+
+    res.status(200).json(returnData);
+  } catch (e) {
+    res.status(500).json(e.message);
   }
-
-  res.status(200).json(returnData);
 }
