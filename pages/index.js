@@ -26,12 +26,15 @@ const fetcher = (offset, opts) => {
   return fetch(["/api/search", params].join("?")).then((r) => r.json());
 };
 
+const date = new Date();
+const userTimezoneOffset = Math.abs(date.getTimezoneOffset() * 60000);
+
 const getPoint = (key, result, format = true) => {
   const point =
     result.dataPoints.find((point) => point.key === key)?.value ?? "";
 
   if (key === "Date" && point && format) {
-    return new Date(point * 1000).toDateString();
+    return new Date(point * 1000 + userTimezoneOffset).toDateString();
   }
   return point;
 };
