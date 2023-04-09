@@ -5,7 +5,7 @@ import styles from "@/styles/Home.module.scss";
 import { build } from "search-params";
 import { useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
-import { sortBy } from "lodash";
+import { sortBy, uniqBy } from "lodash";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -56,7 +56,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentType, setCurrentType] = useState("Pairs");
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("Date:");
+  const [sort, setSort] = useState("Date");
   const hasResults = !isLoading && results && results.length > 0;
 
   useEffect(() => {
@@ -72,10 +72,10 @@ export default function Home() {
         ...maleEngland,
       ];
 
-      let offset = 48;
+      let offset = 0;
       let data = await fetcher(offset, fetchOptions);
 
-      const returnData = [...data.results];
+      setResults([...data.results]);
       while (data && data.totalResults && data.totalResults > offset) {
         offset = offset + 24;
         if (offset > data.totalResults) {
@@ -83,15 +83,13 @@ export default function Home() {
         }
         data = await fetcher(offset, fetchOptions);
         if (data.results.length > 0) {
-          returnData.push(...data.results);
+          setResults((r) => uniqBy([...r, ...data.results], "link"));
         }
       }
-
-      return returnData;
     };
 
-    getResults().then((res) => {
-      setResults(res);
+    setResults([]);
+    getResults().then(() => {
       setIsLoading(false);
     });
   }, [currentType]);
