@@ -36,6 +36,18 @@ const getPoint = (key, result, format = true) => {
   if (key === "Date" && point && format) {
     return new Date(point * 1000 + userTimezoneOffset).toDateString();
   }
+
+  if (key === "Golf Club") {
+    const url = new URL("https://www.google.com/maps/search/");
+    url.searchParams.set("api", "1");
+    url.searchParams.set("query", point);
+    return (
+      <a href={url.toString()} target="_blank">
+        {point}
+      </a>
+    );
+  }
+
   return point;
 };
 
