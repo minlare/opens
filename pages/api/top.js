@@ -1,16 +1,26 @@
 import { parse } from "node-html-parser";
 
-const fetchData = async () => {
-  const response = await fetch("https://www.golfempire.reviews/top/top-inland");
+("https://www.golfempire.reviews/top/top-links-england");
+("https://www.golfempire.reviews/top/top-inland");
+
+const courses = {};
+
+const getCourses = async (href) => {
+  const response = await fetch(href);
   const html = await response.text();
   const root = parse(html);
   const posts = root.querySelectorAll(".post-info");
 
-  const courses = {};
   for (const post of posts) {
     courses[post.querySelector(".h2").textContent] =
       post.querySelector(".text-block-5").textContent;
   }
+};
+
+const fetchData = async () => {
+  await getCourses("https://www.golfempire.reviews/top/top-inland");
+  await getCourses("https://www.golfempire.reviews/top/top-links-england");
+
   return courses;
 };
 
