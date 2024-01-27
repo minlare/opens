@@ -31,28 +31,6 @@ const userTimezoneOffset = date.getTimezoneOffset() * 60000;
 
 const formatDate = (date) => new Date(date).toDateString();
 
-const getPoint = (key, result, format = true) => {
-  const point =
-    result.dataPoints.find((point) => point.key === key)?.value ?? "";
-
-  if (key === "Date" && point && format) {
-    return formatDate(point * 1000 - userTimezoneOffset);
-  }
-
-  if (key === "Golf Club") {
-    const url = new URL("https://www.google.com/maps/search/");
-    url.searchParams.set("api", "1");
-    url.searchParams.set("query", point);
-    return (
-      <a href={url.toString()} target="_blank">
-        {point}
-      </a>
-    );
-  }
-
-  return point;
-};
-
 const columns = [
   "Golf Club",
   "Type",
@@ -138,6 +116,46 @@ export default function Home() {
 
     setSearchResults(sorted);
   }, [fuse, search, results, sort, date]);
+
+  const [topCourses, setTopCourses] = useState({});
+  const getTopCourses = async () => {
+    const result = await fetch("/api/top").then((res) => res.json());
+    setTopCourses(result);
+  };
+  useEffect(() => {
+    getTopCourses();
+  }, []);
+
+  const getPoint = (key, result, format = true) => {
+    const point =
+      result.dataPoints.find((point) => point.key === key)?.value ?? "";
+
+    if (key === "Date" && point && format) {
+      return formatDate(point * 1000 - userTimezoneOffset);
+    }
+
+    if (key === "Golf Club") {
+      const url = new URL("https://www.google.com/maps/search/");
+      url.searchParams.set("api", "1");
+      url.searchParams.set("query", point);
+      return (
+        <>
+          <a href={url.toString()} target="_blank">
+            {point}
+          </a>
+          {topCourses[point] && (
+            <img
+              src="/star.svg"
+              alt="Top Course"
+              style={{ width: 20, marginLeft: 10 }}
+            />
+          )}
+        </>
+      );
+    }
+
+    return point;
+  };
 
   return (
     <>
